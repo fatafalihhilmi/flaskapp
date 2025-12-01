@@ -13,13 +13,30 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Deploy to EC2 via SSH
+    - name: Deploy to EC2 via SSH (Dockerized)
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ec2-user
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
+          # 1. Navigasi ke folder project (sesuai path YAML Anda)
           cd /var/www/flaskapp
+          
+          # 2. Ambil kode terbaru (termasuk Dockerfile Gunicorn yang baru)
           git pull origin main
-          sudo systemctl restart flaskapp
+          
+          # 3. Build Image Docker yang baru (Ini akan menginstal Gunicorn)
+          # Gunicorn sekarang menjadi server WSGI Anda!
+          docker build -t aplikasi-flask-saya .
+          
+          # 4. Hentikan dan Hapus container lama (Gunakan || true untuk menghindari error jika container belum ada)
+          docker stop flask-gunicorn-prod || true
+          docker rm flask-gunicorn-prod || true
+          
+          # 5. Jalankan container baru dengan Gunicorn
+          # Port 5000 EC2 -> Port 5000 Container
+          docker run -d -p 5000:5000 --name flask-gunicorn-prod aplikasi-flask-saya
+          
+          # 6. Restart Nginx (PENTING: Memastikan Nginx terhubung ke container yang baru)
+          sudo systemctl restart nginx
