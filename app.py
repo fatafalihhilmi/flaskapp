@@ -7,4 +7,5 @@ def home():
     return "Hello from CI/CD!"
 
 if __name__ == "__main__":
-    app.run()
+    # HOST='0.0.0.0' agar Flask dapat diakses dari luar Container
+    app.run(host='0.0.0.0', port=5000)
